@@ -1,39 +1,44 @@
-import { useState, useEffect } from 'react'
-import type { NewVehicle } from './types'
+import { useState, useEffect, useCallback } from 'react'
+import type { Vehicle } from './types'
 import { BrandBadge } from './BrandBadge'
 import { CarIcon } from './Icons'
 import { FilterSidebar } from './FilterSidebar'
 import { useLanguage } from './i18n'
+import { AddVehicleModal } from './AddVehicleModal'
 
 export function NewVehicles() {
-  const [vehicles, setVehicles] = useState<NewVehicle[]>([])
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
   const { t } = useLanguage()
 
-  useEffect(() => {
-    async function fetchNewVehicles() {
-      try {
-        setLoading(true)
-        setError(null)
+  // Pulled out of useEffect (and wrapped in useCallback so it doesn't get
+  // recreated every render) so the "Add vehicle" modal can also call it
+  // after a successful save, refreshing the list without a page reload.
+  const fetchNewVehicles = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
 
-        const response = await fetch('http://localhost:5122/api/newvehicles')
+      const response = await fetch('http://localhost:5122/api/vehicles?isNew=true')
 
-        if (!response.ok) {
-          throw new Error(`Server error returned: ${response.status}`)
-        }
-
-        const data = await response.json()
-        setVehicles(data)
-      } catch (err) {
-        setError(t('errorNewVehicles'))
-      } finally {
-        setLoading(false)
+      if (!response.ok) {
+        throw new Error(`Server error returned: ${response.status}`)
       }
-    }
 
-    fetchNewVehicles()
+      const data = await response.json()
+      setVehicles(data)
+    } catch (err) {
+      setError(t('errorNewVehicles'))
+    } finally {
+      setLoading(false)
+    }
   }, [t])
+
+  useEffect(() => {
+    fetchNewVehicles()
+  }, [fetchNewVehicles])
 
   let content
 
@@ -55,6 +60,7 @@ export function NewVehicles() {
           <tr>
             <th>{t('thManufacturer')}</th>
             <th>{t('thModel')}</th>
+            <th>{t('thYear')}</th>
             <th>{t('thBodyType')}</th>
             <th>{t('thColor')}</th>
             <th>{t('thEngine')}</th>
@@ -71,6 +77,7 @@ export function NewVehicles() {
                 </span>
               </td>
               <td>{vehicle.model}</td>
+              <td>{vehicle.year}</td>
               <td>{vehicle.bodyType}</td>
               <td>{vehicle.color}</td>
               <td>{vehicle.engine}</td>
@@ -86,12 +93,25 @@ export function NewVehicles() {
     <div className="page-with-sidebar">
       <FilterSidebar />
       <div className="page-with-sidebar__main">
-        <h1 className="page-title">
-          <CarIcon className="page-title__icon" />
-          {t('navNewVehicles')}
-        </h1>
+        <div className="page-header">
+          <h1 className="page-title">
+            <CarIcon className="page-title__icon" />
+            {t('navNewVehicles')}
+          </h1>
+          <button className="btn btn--primary" onClick={() => setShowAddModal(true)}>
+            {t('addVehicleButton')}
+          </button>
+        </div>
         {content}
       </div>
+
+      {showAddModal && (
+        <AddVehicleModal
+          isNew={true}
+          onClose={() => setShowAddModal(false)}
+          onCreated={fetchNewVehicles}
+        />
+      )}
     </div>
   )
 }
