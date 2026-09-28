@@ -13,4 +13,7 @@ public record CreateVehicleRequest(
     string Color,
     string Engine,
     int Year,
-    decimal Price);
+    decimal Price,
+    // Optional - null means no tyre attached to this vehicle.
+    int? TyreId,
+    int? TyreQuantity);

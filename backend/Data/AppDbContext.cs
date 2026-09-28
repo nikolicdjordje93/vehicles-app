@@ -3,18 +3,7 @@ using Vehicles.Api.Models;
 
 namespace Vehicles.Api.Data;
 
-// One DbContext for the whole application's database - not one per entity
-// or per controller. As we add more tables later (e.g. Tyres), they get
-// their own DbSet<T> property right here, not a separate DbContext class.
-//
-// This used to also have an OnModelCreating override with HasData() seed
-// data for the first 30 vehicles. That seed data already did its one-time
-// job - the rows it described were generated into the InitialCreate
-// migration and applied to Postgres a while ago, so they exist permanently
-// in the database now, independent of this C# code. Since new vehicles
-// are added through the app itself (POST /api/vehicles) rather than
-// through migrations from here on, there's no need to keep declaring that
-// seed data as part of the model.
+// Shared DbContext for the whole app - one DbSet<T> per table.
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
@@ -22,4 +11,18 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<Tyre> Tyres => Set<Tyre>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Vehicle>()
+            .HasOne(v => v.Tyre)
+            .WithMany()
+            .HasForeignKey(v => v.TyreId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Auto-applies !IsDeleted to every query against these DbSets.
+        modelBuilder.Entity<Vehicle>().HasQueryFilter(v => !v.IsDeleted);
+        modelBuilder.Entity<Tyre>().HasQueryFilter(t => !t.IsDeleted);
+    }
 }

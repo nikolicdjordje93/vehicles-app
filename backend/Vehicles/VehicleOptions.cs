@@ -9,5 +9,9 @@ public record VehicleOptions(
     List<string> Brands,
     Dictionary<string, List<string>> ModelsByBrand,
     List<string> BodyTypes,
+    List<string> Colors,
     List<string> Engines,
-    List<int> Years);
+    List<int> Years,
+    // Existing tyres, for the optional "attach a tyre" dropdown - this one
+    // IS a hard list (a real TyreId, not free text), unlike the rest.
+    List<TyreResponse> Tyres);

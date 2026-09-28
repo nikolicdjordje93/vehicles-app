@@ -11,6 +11,8 @@ export function UsedVehicles() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const { t } = useLanguage()
 
   // Pulled out of useEffect (and wrapped in useCallback so it doesn't get
@@ -40,6 +42,28 @@ export function UsedVehicles() {
     fetchUsedVehicles()
   }, [fetchUsedVehicles])
 
+  async function handleDelete(id: number) {
+    if (!window.confirm(t('confirmDeleteVehicle'))) {
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5122/api/vehicles/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error(`Server error returned: ${response.status}`)
+      }
+
+      fetchUsedVehicles()
+      setSuccessMessage(t('successDeleteVehicle'))
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      setError(t('errorDeleteVehicle'))
+    }
+  }
+
   let content
 
   if (loading) {
@@ -65,6 +89,8 @@ export function UsedVehicles() {
             <th>{t('thColor')}</th>
             <th>{t('thEngine')}</th>
             <th>{t('thPrice')}</th>
+            <th>{t('thTyre')}</th>
+            <th>{t('thActions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -82,6 +108,21 @@ export function UsedVehicles() {
               <td>{car.color}</td>
               <td>{car.engine}</td>
               <td>€{car.price.toLocaleString()}</td>
+              <td>
+                {car.tyreBrand
+                  ? `${car.tyreBrand} ${car.tyreSizeInches}" (${car.tyreQuantity}x)`
+                  : '—'}
+              </td>
+              <td>
+                <div className="table__actions">
+                  <button className="btn btn--secondary btn--small" onClick={() => setEditingVehicle(car)}>
+                    {t('editButton')}
+                  </button>
+                  <button className="btn btn--danger btn--small" onClick={() => handleDelete(car.id)}>
+                    {t('deleteButton')}
+                  </button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -102,6 +143,7 @@ export function UsedVehicles() {
             {t('addVehicleButton')}
           </button>
         </div>
+        {successMessage && <p className="banner banner--success">{successMessage}</p>}
         {content}
       </div>
 
@@ -110,6 +152,19 @@ export function UsedVehicles() {
           isNew={false}
           onClose={() => setShowAddModal(false)}
           onCreated={fetchUsedVehicles}
+        />
+      )}
+
+      {editingVehicle && (
+        <AddVehicleModal
+          isNew={false}
+          vehicle={editingVehicle}
+          onClose={() => setEditingVehicle(null)}
+          onCreated={() => {
+            fetchUsedVehicles()
+            setSuccessMessage(t('successEditVehicle'))
+            setTimeout(() => setSuccessMessage(null), 3000)
+          }}
         />
       )}
     </div>

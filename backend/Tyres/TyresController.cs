@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Vehicles.Api.Data;
 using Vehicles.Api.Models;
 
 namespace Vehicles.Api.Controllers;
@@ -7,28 +9,94 @@ namespace Vehicles.Api.Controllers;
 [Route("api/[controller]")]
 public class TyresController : ControllerBase
 {
-    private static readonly List<Tyres> Data = new()
-    {
-        new Tyres(1, "Michelin", 16, "Summer", 85m),
-        new Tyres(2, "Bridgestone", 17, "Winter", 95m),
-        new Tyres(3, "Goodyear", 18, "All-season", 105m),
-        new Tyres(4, "Continental", 16, "Summer", 80m),
-        new Tyres(5, "Pirelli", 17, "Winter", 98m),
-        new Tyres(6, "Dunlop", 18, "All-season", 100m),
-        new Tyres(7, "Hankook", 15, "Summer", 65m),
-        new Tyres(8, "Yokohama", 16, "Winter", 78m),
-        new Tyres(9, "Kumho", 17, "All-season", 82m),
-        new Tyres(10, "Michelin", 18, "Winter", 115m),
-        new Tyres(11, "Continental", 17, "All-season", 92m),
-        new Tyres(12, "Bridgestone", 15, "Summer", 70m),
-        new Tyres(13, "Pirelli", 18, "Summer", 108m),
-        new Tyres(14, "Goodyear", 16, "Winter", 88m),
-        new Tyres(15, "Hankook", 17, "All-season", 90m)
-    };
+    private readonly AppDbContext _db;
 
-    [HttpGet]
-    public ActionResult<List<Tyres>> Get()
+    public TyresController(AppDbContext db)
     {
-        return Data;
+        _db = db;
+    }
+
+    // GET /api/tyres - now reads from Postgres via AppDbContext instead of
+    // the old hardcoded in-memory list, the same migration Vehicles went
+    // through earlier.
+    [HttpGet]
+    public async Task<ActionResult> Get()
+    {
+        var tyres = await _db.Tyres
+            .OrderBy(t => t.Brand)
+            .Select(t => new TyreResponse(t.Id, t.Brand, t.SizeInches, t.Season, t.Price))
+            .ToListAsync();
+
+        return Ok(tyres);
+    }
+
+    // GET /api/tyres/options - same idea as VehiclesController.GetOptions.
+    [HttpGet("options")]
+    public async Task<ActionResult<TyreOptions>> GetOptions()
+    {
+        var tyres = await _db.Tyres
+            .Select(t => new { t.Brand, t.SizeInches, t.Season })
+            .ToListAsync();
+
+        var brands = tyres.Select(t => t.Brand).Distinct().OrderBy(b => b).ToList();
+        var sizes = tyres.Select(t => t.SizeInches).Distinct().OrderBy(s => s).ToList();
+        var seasons = tyres.Select(t => t.Season).Distinct().OrderBy(s => s).ToList();
+
+        return Ok(new TyreOptions(brands, sizes, seasons));
+    }
+
+    // POST /api/tyres - Create, same shape as VehiclesController.Post.
+    [HttpPost]
+    public async Task<ActionResult> Post([FromBody] CreateTyreRequest request)
+    {
+        var tyre = new Tyre
+        {
+            Brand = request.Brand,
+            SizeInches = request.SizeInches,
+            Season = request.Season,
+            Price = request.Price
+        };
+
+        _db.Tyres.Add(tyre);
+        await _db.SaveChangesAsync();
+
+        var response = new TyreResponse(tyre.Id, tyre.Brand, tyre.SizeInches, tyre.Season, tyre.Price);
+        return StatusCode(201, response);
+    }
+
+    // PUT /api/tyres/5 - Update.
+    [HttpPut("{id}")]
+    public async Task<ActionResult> Put(int id, [FromBody] CreateTyreRequest request)
+    {
+        var tyre = await _db.Tyres.FindAsync(id);
+        if (tyre is null)
+        {
+            return NotFound();
+        }
+
+        tyre.Brand = request.Brand;
+        tyre.SizeInches = request.SizeInches;
+        tyre.Season = request.Season;
+        tyre.Price = request.Price;
+
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    // DELETE /api/tyres/5 - soft delete, same as VehiclesController.
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> Delete(int id)
+    {
+        var tyre = await _db.Tyres.FindAsync(id);
+        if (tyre is null)
+        {
+            return NotFound();
+        }
+
+        tyre.IsDeleted = true;
+        await _db.SaveChangesAsync();
+
+        return NoContent();
     }
 }

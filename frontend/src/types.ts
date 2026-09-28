@@ -12,6 +12,13 @@ export interface Vehicle {
   color: string
   engine: string
   price: number
+  // Optional attached tyre - null means none chosen.
+  tyreId: number | null
+  tyreQuantity: number | null
+  // Denormalized from the attached tyre, for display - null when none.
+  tyreBrand: string | null
+  tyreSizeInches: number | null
+  tyreSeason: string | null
 }
 
 export interface Tyre {
@@ -33,6 +40,8 @@ export interface CreateVehiclePayload {
   engine: string
   year: number
   price: number
+  tyreId: number | null
+  tyreQuantity: number | null
 }
 
 // Autocomplete suggestions for the "Add vehicle" form, from
@@ -41,6 +50,25 @@ export interface VehicleOptions {
   brands: string[]
   modelsByBrand: Record<string, string[]>
   bodyTypes: string[]
+  colors: string[]
   engines: string[]
   years: number[]
+  // Existing tyres, for the "attach a tyre" dropdown.
+  tyres: Tyre[]
+}
+
+// What we send to POST/PUT /api/tyres.
+export interface CreateTyrePayload {
+  brand: string
+  sizeInches: number
+  season: string
+  price: number
+}
+
+// Autocomplete suggestions for the "Add tyre" form, from
+// GET /api/tyres/options - mirrors the backend's TyreOptions.
+export interface TyreOptions {
+  brands: string[]
+  sizes: number[]
+  seasons: string[]
 }

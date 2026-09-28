@@ -16,4 +16,11 @@ public record VehicleResponse(
     string BodyType,
     string Color,
     string Engine,
-    decimal Price);
+    decimal Price,
+    int? TyreId,
+    int? TyreQuantity,
+    // Denormalized from the attached Tyre (if any) so the frontend can
+    // show it in the table without a second request.
+    string? TyreBrand,
+    int? TyreSizeInches,
+    string? TyreSeason);
