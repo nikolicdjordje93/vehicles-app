@@ -1,8 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { Nav } from './Nav'
 import { Home } from './Home'
-import { NewVehicles } from './NewVehicles'
-import { UsedVehicles } from './UsedVehicles'
+import { Vehicles } from './Vehicles'
 import { Tyres } from './Tyres'
 import { BackgroundArt } from './BackgroundArt'
 import { LanguageProvider } from './i18n'
@@ -16,8 +15,7 @@ function App() {
         <main className="app__content">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/new-vehicles" element={<NewVehicles />} />
-            <Route path="/used-vehicles" element={<UsedVehicles />} />
+            <Route path="/vehicles" element={<Vehicles />} />
             <Route path="/tyres" element={<Tyres />} />
           </Routes>
         </main>

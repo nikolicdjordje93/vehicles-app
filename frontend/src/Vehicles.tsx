@@ -6,7 +6,11 @@ import { FilterSidebar } from './FilterSidebar'
 import { useLanguage } from './i18n'
 import { AddVehicleModal } from './AddVehicleModal'
 
-export function NewVehicles() {
+// New and Used used to be two separate pages/routes. They're the same
+// table and the same DB rows (split only by the isNew column), so this
+// single page now covers both - a tab picks which isNew value to fetch.
+export function Vehicles() {
+  const [isNewFilter, setIsNewFilter] = useState(true)
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -18,12 +22,13 @@ export function NewVehicles() {
   // Pulled out of useEffect (and wrapped in useCallback so it doesn't get
   // recreated every render) so the "Add vehicle" modal can also call it
   // after a successful save, refreshing the list without a page reload.
-  const fetchNewVehicles = useCallback(async () => {
+  // Depends on isNewFilter, so switching tabs refetches automatically.
+  const fetchVehicles = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('http://localhost:5122/api/vehicles?isNew=true')
+      const response = await fetch(`http://localhost:5122/api/vehicles?isNew=${isNewFilter}`)
 
       if (!response.ok) {
         throw new Error(`Server error returned: ${response.status}`)
@@ -32,15 +37,15 @@ export function NewVehicles() {
       const data = await response.json()
       setVehicles(data)
     } catch (err) {
-      setError(t('errorNewVehicles'))
+      setError(t('errorVehicles'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [t, isNewFilter])
 
   useEffect(() => {
-    fetchNewVehicles()
-  }, [fetchNewVehicles])
+    fetchVehicles()
+  }, [fetchVehicles])
 
   async function handleDelete(id: number) {
     if (!window.confirm(t('confirmDeleteVehicle'))) {
@@ -56,7 +61,7 @@ export function NewVehicles() {
         throw new Error(`Server error returned: ${response.status}`)
       }
 
-      fetchNewVehicles()
+      fetchVehicles()
       setSuccessMessage(t('successDeleteVehicle'))
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
@@ -70,13 +75,13 @@ export function NewVehicles() {
     content = (
       <div className="state">
         <div className="spinner" />
-        <p>{t('loadingNewVehicles')}</p>
+        <p>{t('loadingVehicles')}</p>
       </div>
     )
   } else if (error) {
     content = <p className="state state--error">{t('errorPrefix')} {error}</p>
   } else if (vehicles.length === 0) {
-    content = <p className="state">{t('emptyNewVehicles')}</p>
+    content = <p className="state">{t('emptyVehicles')}</p>
   } else {
     content = (
       <table className="table">
@@ -107,7 +112,9 @@ export function NewVehicles() {
               <td>{vehicle.bodyType}</td>
               <td>{vehicle.color}</td>
               <td>{vehicle.engine}</td>
-              <td>{t('priceFrom')} €{vehicle.price.toLocaleString()}</td>
+              {/* "Start from" prefix only made sense for New (list price);
+                  a used vehicle's price is the actual asking price. */}
+              <td>{isNewFilter && `${t('priceFrom')} `}€{vehicle.price.toLocaleString()}</td>
               <td>
                 {vehicle.tyreBrand
                   ? `${vehicle.tyreBrand} ${vehicle.tyreSizeInches}" (${vehicle.tyreQuantity}x)`
@@ -137,31 +144,45 @@ export function NewVehicles() {
         <div className="page-header">
           <h1 className="page-title">
             <CarIcon className="page-title__icon" />
-            {t('navNewVehicles')}
+            {t('navVehicles')}
           </h1>
           <button className="btn btn--primary" onClick={() => setShowAddModal(true)}>
             {t('addVehicleButton')}
           </button>
         </div>
+
+        <div className="tabs" style={{ marginBottom: 20 }}>
+          <button
+            className={'tab' + (isNewFilter ? ' tab--active' : '')}
+            onClick={() => setIsNewFilter(true)}
+          >
+            {t('tabNew')}
+          </button>
+          <button
+            className={'tab' + (!isNewFilter ? ' tab--active' : '')}
+            onClick={() => setIsNewFilter(false)}
+          >
+            {t('tabUsed')}
+          </button>
+        </div>
+
         {successMessage && <p className="banner banner--success">{successMessage}</p>}
         {content}
       </div>
 
       {showAddModal && (
         <AddVehicleModal
-          isNew={true}
           onClose={() => setShowAddModal(false)}
-          onCreated={fetchNewVehicles}
+          onCreated={fetchVehicles}
         />
       )}
 
       {editingVehicle && (
         <AddVehicleModal
-          isNew={true}
           vehicle={editingVehicle}
           onClose={() => setEditingVehicle(null)}
           onCreated={() => {
-            fetchNewVehicles()
+            fetchVehicles()
             setSuccessMessage(t('successEditVehicle'))
             setTimeout(() => setSuccessMessage(null), 3000)
           }}

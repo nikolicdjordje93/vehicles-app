@@ -13,8 +13,7 @@ export function Nav() {
   }
 
   const categoryLabels: Record<string, string> = {
-    '/new-vehicles': t('navNewVehicles'),
-    '/used-vehicles': t('navUsedVehicles'),
+    '/vehicles': t('navVehicles'),
     '/tyres': t('navTyres'),
   }
 
@@ -32,11 +31,8 @@ export function Nav() {
       </Link>
 
       <div className="nav__center">
-        <NavLink to="/new-vehicles" className={linkClass}>
-          {t('navNewVehicles')}
-        </NavLink>
-        <NavLink to="/used-vehicles" className={linkClass}>
-          {t('navUsedVehicles')}
+        <NavLink to="/vehicles" className={linkClass}>
+          {t('navVehicles')}
         </NavLink>
         <NavLink to="/tyres" className={linkClass}>
           {t('navTyres')}
@@ -70,18 +66,11 @@ export function Nav() {
           {isOpen && (
             <div className="nav__dropdown-menu">
               <NavLink
-                to="/new-vehicles"
+                to="/vehicles"
                 onClick={closeMenu}
                 className={({ isActive }) => (isActive ? 'is-active' : undefined)}
               >
-                {t('navNewVehicles')}
-              </NavLink>
-              <NavLink
-                to="/used-vehicles"
-                onClick={closeMenu}
-                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
-              >
-                {t('navUsedVehicles')}
+                {t('navVehicles')}
               </NavLink>
               <NavLink
                 to="/tyres"

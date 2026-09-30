@@ -491,6 +491,43 @@ a {
 }
 
 /* ===================================================================
+   Tabs (New/Used vehicle filter, and the Add form's Condition field)
+   =================================================================== */
+
+.tabs {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.tab {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-alt);
+  border: none;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tab:not(:first-child) {
+  border-left: 1px solid var(--border);
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab--active {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+/* ===================================================================
    Modal & form (Add vehicle)
    =================================================================== */
 
@@ -651,17 +688,31 @@ a {
   color: #d64545;
 }
 
+/* Fixed instead of inline - so it stays visible (and visible in the same
+   spot) even if the user has already scrolled the page down, instead of
+   sitting above the table where a scroll hides it. */
 .banner {
+  position: fixed;
+  top: calc(var(--nav-height) + 20px);
+  right: 24px;
+  max-width: 360px;
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 14px;
-  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  z-index: 30;
 }
 
 .banner--success {
   background: #e6f7ec;
   color: #1f8a4c;
   border: 1px solid #b7e4c7;
+}
+
+.banner--error {
+  background: #fceaea;
+  color: #b23a3a;
+  border: 1px solid #f0b8b8;
 }
 
 .spinner {

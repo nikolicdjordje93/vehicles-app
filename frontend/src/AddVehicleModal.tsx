@@ -4,9 +4,6 @@ import { useLanguage } from './i18n'
 import { useDatalistFocus } from './useDatalistFocus'
 
 interface AddVehicleModalProps {
-  // Decides which list this vehicle joins - the page that opened the modal
-  // already knows this, so the user never has to pick it manually.
-  isNew: boolean
   onClose: () => void
   // Called after a successful save, so the page can re-fetch its list and
   // show the new/updated row without a manual page refresh.
@@ -20,10 +17,14 @@ interface AddVehicleModalProps {
 // field underneath, so the user can change it to anything.
 const DEFAULT_YEAR = '2026'
 
-export function AddVehicleModal({ isNew, onClose, onCreated, vehicle }: AddVehicleModalProps) {
+export function AddVehicleModal({ onClose, onCreated, vehicle }: AddVehicleModalProps) {
   const { t } = useLanguage()
   const isEditing = vehicle !== undefined
   const [options, setOptions] = useState<VehicleOptions | null>(null)
+  // Explicit field, not inherited from whichever tab was open - lets you
+  // add a used vehicle while looking at the New tab, or fix a miscategorized
+  // one on Edit. Defaults to New for the Add form.
+  const [isNewVehicle, setIsNewVehicle] = useState(vehicle ? vehicle.isNew : true)
   const [brand, setBrand] = useState(vehicle?.brand ?? '')
   const [model, setModel] = useState(vehicle?.model ?? '')
   const [bodyType, setBodyType] = useState(vehicle?.bodyType ?? '')
@@ -156,7 +157,7 @@ export function AddVehicleModal({ isNew, onClose, onCreated, vehicle }: AddVehic
     const resolvedTyreQuantity = tyreId && !tyreQuantity.trim() ? '4' : tyreQuantity
 
     const payload: CreateVehiclePayload = {
-      isNew,
+      isNew: isNewVehicle,
       brand,
       model,
       bodyType,
@@ -204,6 +205,26 @@ export function AddVehicleModal({ isNew, onClose, onCreated, vehicle }: AddVehic
         <form className="form" onSubmit={handleSubmit} noValidate>
           {/* Only this area scrolls - title above and buttons below stay fixed. */}
           <div className="form__scroll-area">
+          <label className="form__field">
+            <span>{t('thCondition')}</span>
+            <div className="tabs">
+              <button
+                type="button"
+                className={'tab' + (isNewVehicle ? ' tab--active' : '')}
+                onClick={() => setIsNewVehicle(true)}
+              >
+                {t('conditionNew')}
+              </button>
+              <button
+                type="button"
+                className={'tab' + (!isNewVehicle ? ' tab--active' : '')}
+                onClick={() => setIsNewVehicle(false)}
+              >
+                {t('conditionUsed')}
+              </button>
+            </div>
+          </label>
+
           <label className="form__field">
             <span>{t('thManufacturer')}</span>
             <input

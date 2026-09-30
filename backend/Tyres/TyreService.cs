@@ -1,38 +1,28 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Vehicles.Api.Data;
+using Vehicles.Api.Exceptions;
 using Vehicles.Api.Models;
 
-namespace Vehicles.Api.Controllers;
+namespace Vehicles.Api.Services;
 
-[ApiController]
-[Route("api/[controller]")]
-public class TyresController : ControllerBase
+public class TyreService : ITyreService
 {
     private readonly AppDbContext _db;
 
-    public TyresController(AppDbContext db)
+    public TyreService(AppDbContext db)
     {
         _db = db;
     }
 
-    // GET /api/tyres - now reads from Postgres via AppDbContext instead of
-    // the old hardcoded in-memory list, the same migration Vehicles went
-    // through earlier.
-    [HttpGet]
-    public async Task<ActionResult> Get()
+    public async Task<List<TyreResponse>> GetAsync()
     {
-        var tyres = await _db.Tyres
+        return await _db.Tyres
             .OrderBy(t => t.Brand)
             .Select(t => new TyreResponse(t.Id, t.Brand, t.SizeInches, t.Season, t.Price))
             .ToListAsync();
-
-        return Ok(tyres);
     }
 
-    // GET /api/tyres/options - same idea as VehiclesController.GetOptions.
-    [HttpGet("options")]
-    public async Task<ActionResult<TyreOptions>> GetOptions()
+    public async Task<TyreOptions> GetOptionsAsync()
     {
         var tyres = await _db.Tyres
             .Select(t => new { t.Brand, t.SizeInches, t.Season })
@@ -42,12 +32,10 @@ public class TyresController : ControllerBase
         var sizes = tyres.Select(t => t.SizeInches).Distinct().OrderBy(s => s).ToList();
         var seasons = tyres.Select(t => t.Season).Distinct().OrderBy(s => s).ToList();
 
-        return Ok(new TyreOptions(brands, sizes, seasons));
+        return new TyreOptions(brands, sizes, seasons);
     }
 
-    // POST /api/tyres - Create, same shape as VehiclesController.Post.
-    [HttpPost]
-    public async Task<ActionResult> Post([FromBody] CreateTyreRequest request)
+    public async Task<TyreResponse> CreateAsync(CreateTyreRequest request)
     {
         var tyre = new Tyre
         {
@@ -60,18 +48,15 @@ public class TyresController : ControllerBase
         _db.Tyres.Add(tyre);
         await _db.SaveChangesAsync();
 
-        var response = new TyreResponse(tyre.Id, tyre.Brand, tyre.SizeInches, tyre.Season, tyre.Price);
-        return StatusCode(201, response);
+        return new TyreResponse(tyre.Id, tyre.Brand, tyre.SizeInches, tyre.Season, tyre.Price);
     }
 
-    // PUT /api/tyres/5 - Update.
-    [HttpPut("{id}")]
-    public async Task<ActionResult> Put(int id, [FromBody] CreateTyreRequest request)
+    public async Task UpdateAsync(int id, CreateTyreRequest request)
     {
         var tyre = await _db.Tyres.FindAsync(id);
         if (tyre is null)
         {
-            return NotFound();
+            throw new NotFoundException($"Tyre with id {id} was not found.");
         }
 
         tyre.Brand = request.Brand;
@@ -80,23 +65,27 @@ public class TyresController : ControllerBase
         tyre.Price = request.Price;
 
         await _db.SaveChangesAsync();
-
-        return NoContent();
     }
 
-    // DELETE /api/tyres/5 - soft delete, same as VehiclesController.
-    [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(int id)
+    public async Task DeleteAsync(int id)
     {
         var tyre = await _db.Tyres.FindAsync(id);
         if (tyre is null)
         {
-            return NotFound();
+            throw new NotFoundException($"Tyre with id {id} was not found.");
+        }
+
+        // Refuse to delete a tyre that's still attached to a vehicle -
+        // soft-deleting it would hide it from that vehicle (the query
+        // filter excludes it), silently breaking the tyre-vehicle link
+        // instead of actually removing it.
+        var isAttachedToVehicle = await _db.Vehicles.AnyAsync(v => v.TyreId == id);
+        if (isAttachedToVehicle)
+        {
+            throw new ConflictException("This tyre is attached to a vehicle and can't be deleted.");
         }
 
         tyre.IsDeleted = true;
         await _db.SaveChangesAsync();
-
-        return NoContent();
     }
 }

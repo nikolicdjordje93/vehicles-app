@@ -13,6 +13,10 @@ export function Tyres() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingTyre, setEditingTyre] = useState<Tyre | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  // Separate from `error` above - that one replaces the whole table (it's
+  // meant for "couldn't load the list"). A failed delete shouldn't hide
+  // the list the user is looking at, so it gets its own banner instead.
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const { t } = useLanguage()
 
   const fetchTyres = useCallback(async () => {
@@ -44,10 +48,20 @@ export function Tyres() {
       return
     }
 
+    setDeleteError(null)
+
     try {
       const response = await fetch(`http://localhost:5122/api/tyres/${id}`, {
         method: 'DELETE',
       })
+
+      // 409 Conflict - the backend refused because a vehicle still has
+      // this tyre attached. Distinct message so it's clear *why*.
+      if (response.status === 409) {
+        setDeleteError(t('errorTyreInUse'))
+        setTimeout(() => setDeleteError(null), 3000)
+        return
+      }
 
       if (!response.ok) {
         throw new Error(`Server error returned: ${response.status}`)
@@ -57,7 +71,8 @@ export function Tyres() {
       setSuccessMessage(t('successDeleteTyre'))
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
-      setError(t('errorDeleteTyre'))
+      setDeleteError(t('errorDeleteTyre'))
+      setTimeout(() => setDeleteError(null), 3000)
     }
   }
 
@@ -129,6 +144,7 @@ export function Tyres() {
           </button>
         </div>
         {successMessage && <p className="banner banner--success">{successMessage}</p>}
+        {deleteError && <p className="banner banner--error">{deleteError}</p>}
         {content}
       </div>
 
