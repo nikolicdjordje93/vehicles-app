@@ -7,7 +7,9 @@ public class Vehicle
     public bool IsNew { get; set; }
     public string Brand { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
-    public string BodyType { get; set; } = string.Empty;
+    // Šifarnik FK - same pattern as TyreId/Tyre below.
+    public int BodyTypeId { get; set; }
+    public BodyType? BodyType { get; set; }
     public string Color { get; set; } = string.Empty;
     public string Engine { get; set; } = string.Empty;
     public int Year { get; set; }
@@ -20,4 +22,8 @@ public class Vehicle
 
     // Soft delete - true means "hidden", the row still exists in the DB.
     public bool IsDeleted { get; set; }
+
+    // Many-to-many with Equipment, through the VehicleEquipment join
+    // table. One row here per piece of equipment this vehicle actually has.
+    public ICollection<VehicleEquipment> VehicleEquipment { get; set; } = new List<VehicleEquipment>();
 }

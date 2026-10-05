@@ -2,6 +2,8 @@ import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
 import type { CreateVehiclePayload, Vehicle, VehicleOptions } from './types'
 import { useLanguage } from './i18n'
 import { useDatalistFocus } from './useDatalistFocus'
+import { EquipmentPicker } from './EquipmentPicker'
+import { apiFetch } from './api'
 
 interface AddVehicleModalProps {
   onClose: () => void
@@ -27,7 +29,9 @@ export function AddVehicleModal({ onClose, onCreated, vehicle }: AddVehicleModal
   const [isNewVehicle, setIsNewVehicle] = useState(vehicle ? vehicle.isNew : true)
   const [brand, setBrand] = useState(vehicle?.brand ?? '')
   const [model, setModel] = useState(vehicle?.model ?? '')
-  const [bodyType, setBodyType] = useState(vehicle?.bodyType ?? '')
+  // A real <select> bound to an id, not free text - same reasoning as
+  // tyreId below. Options come straight from the BodyTypes šifarnik table.
+  const [bodyTypeId, setBodyTypeId] = useState(vehicle ? String(vehicle.bodyTypeId) : '')
   const [color, setColor] = useState(vehicle?.color ?? '')
   const [colorError, setColorError] = useState<string | null>(null)
   const [engine, setEngine] = useState(vehicle?.engine ?? '')
@@ -40,6 +44,9 @@ export function AddVehicleModal({ onClose, onCreated, vehicle }: AddVehicleModal
   const [tyreId, setTyreId] = useState(vehicle?.tyreId ? String(vehicle.tyreId) : '')
   const [tyreQuantity, setTyreQuantity] = useState(vehicle?.tyreQuantity ? String(vehicle.tyreQuantity) : '')
   const [tyreQuantityError, setTyreQuantityError] = useState<string | null>(null)
+  // Which equipment ids are currently checked - starts from whatever the
+  // vehicle already has (mapped down to just the ids) when editing.
+  const [equipmentIds, setEquipmentIds] = useState<number[]>(vehicle?.equipment.map((e) => e.id) ?? [])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // Becomes true after a failed submit attempt, so required-field
@@ -96,12 +103,21 @@ export function AddVehicleModal({ onClose, onCreated, vehicle }: AddVehicleModal
     }
   }
 
+  // Checking a box adds its id, unchecking removes it - equipmentIds is
+  // just "the current set of checked ids", nothing fancier than that.
+  function handleEquipmentToggle(equipmentId: number) {
+    setEquipmentIds((prev) =>
+      prev.includes(equipmentId)
+        ? prev.filter((id) => id !== equipmentId)
+        : [...prev, equipmentId]
+    )
+  }
+
   // One of these per datalist field - clears it on focus so the full list
   // of existing values shows, restores the old value on blur if nothing
   // was picked.
   const brandFocus = useDatalistFocus(setBrand)
   const modelFocus = useDatalistFocus(setModel)
-  const bodyTypeFocus = useDatalistFocus(setBodyType)
   const colorFocus = useDatalistFocus(setColor)
   const engineFocus = useDatalistFocus(setEngine)
   const yearFocus = useDatalistFocus(setYear)
@@ -110,7 +126,7 @@ export function AddVehicleModal({ onClose, onCreated, vehicle }: AddVehicleModal
   useEffect(() => {
     async function fetchOptions() {
       try {
-        const response = await fetch('http://localhost:5122/api/vehicles/options')
+        const response = await apiFetch('/api/vehicles/options')
         if (!response.ok) {
           throw new Error(`Server error returned: ${response.status}`)
         }
@@ -135,7 +151,7 @@ export function AddVehicleModal({ onClose, onCreated, vehicle }: AddVehicleModal
   const isFormValid =
     brand.trim() !== '' &&
     model.trim() !== '' &&
-    bodyType.trim() !== '' &&
+    bodyTypeId !== '' &&
     color.trim() !== '' &&
     engine.trim() !== '' &&
     year.trim() !== '' &&
@@ -160,21 +176,22 @@ export function AddVehicleModal({ onClose, onCreated, vehicle }: AddVehicleModal
       isNew: isNewVehicle,
       brand,
       model,
-      bodyType,
+      bodyTypeId: Number(bodyTypeId),
       color,
       engine,
       year: Number(year),
       price: Number(price),
       tyreId: tyreId ? Number(tyreId) : null,
       tyreQuantity: tyreId ? Number(resolvedTyreQuantity) : null,
+      equipmentIds,
     }
 
     const url = vehicle
-      ? `http://localhost:5122/api/vehicles/${vehicle.id}`
-      : 'http://localhost:5122/api/vehicles'
+      ? `/api/vehicles/${vehicle.id}`
+      : '/api/vehicles'
 
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -284,20 +301,19 @@ export function AddVehicleModal({ onClose, onCreated, vehicle }: AddVehicleModal
             )}
           </label>
 
+          {/* Šifarnik - a real <select> resolving to a BodyTypeId, same
+              reasoning as the Tyre <select> further down, not free text
+              like Brand/Model/Color/Engine above. New entries are added
+              directly in the database, not from this form. */}
           <label className="form__field">
             <span>{t('thBodyType')}</span>
-            <input
-              list="bodytype-options"
-              value={bodyType}
-              onChange={(e) => setBodyType(e.target.value)}
-              onFocus={bodyTypeFocus.onFocus}
-              onBlur={bodyTypeFocus.onBlur}
-              required
-            />
-            <datalist id="bodytype-options">
-              {options?.bodyTypes.map((b) => <option key={b} value={b} />)}
-            </datalist>
-            {submitAttempted && !bodyType.trim() && (
+            <select value={bodyTypeId} onChange={(e) => setBodyTypeId(e.target.value)}>
+              <option value="">{t('selectBodyTypeOption')}</option>
+              {options?.bodyTypes.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            {submitAttempted && !bodyTypeId && (
               <span className="form__field-error">{t('errorRequired')}</span>
             )}
           </label>
@@ -381,6 +397,19 @@ export function AddVehicleModal({ onClose, onCreated, vehicle }: AddVehicleModal
               {tyreQuantityError && <span className="form__field-error">{tyreQuantityError}</span>}
             </label>
           )}
+
+          {/* Many-to-many - a multi-select dropdown, not a plain <select>,
+              since more than one item can be picked at once. No
+              required-field error here: an empty selection (no equipment
+              at all) is valid. */}
+          <div className="form__field">
+            <span>{t('thEquipment')}</span>
+            <EquipmentPicker
+              options={options?.equipment ?? []}
+              selectedIds={equipmentIds}
+              onToggle={handleEquipmentToggle}
+            />
+          </div>
 
           {error && <p className="state state--error">{error}</p>}
           </div>

@@ -36,3 +36,23 @@ export function TyreIcon({ className }: { className?: string }) {
     </svg>
   )
 }
+
+export function EquipmentIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M14.7 6.3a3.5 3.5 0 0 0-4.62 4.62L4 17l3 3 6.08-6.08a3.5 3.5 0 0 0 4.62-4.62l-2.3 2.3-2-2 2.3-2.3z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}

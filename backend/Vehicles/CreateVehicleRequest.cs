@@ -13,8 +13,10 @@ public record CreateVehicleRequest(
     string Brand,
     [Required(ErrorMessage = "Model is required.")]
     string Model,
-    [Required(ErrorMessage = "Body type is required.")]
-    string BodyType,
+    // [Required] is a no-op on int (0 is a valid value for it), so a hard
+    // lower bound is what actually catches "no body type chosen" here.
+    [Range(1, int.MaxValue, ErrorMessage = "Body type is required.")]
+    int BodyTypeId,
     [Required(ErrorMessage = "Color is required.")]
     string Color,
     [Required(ErrorMessage = "Engine is required.")]
@@ -26,4 +28,10 @@ public record CreateVehicleRequest(
     // Optional - null means no tyre attached to this vehicle.
     int? TyreId,
     [Range(1, 100, ErrorMessage = "Tyre quantity must be a positive number.")]
-    int? TyreQuantity);
+    int? TyreQuantity,
+    // The full set of equipment ids this vehicle should end up with - not
+    // "add this one" or "remove that one". No [Required] - an empty list
+    // (no equipment at all) is perfectly valid, so it stays optional; if
+    // the field is missing entirely from the JSON, this defaults to null,
+    // which VehicleService treats the same as an empty list.
+    List<int>? EquipmentIds);

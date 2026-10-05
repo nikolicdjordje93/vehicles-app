@@ -7,7 +7,9 @@ namespace Vehicles.Api.Services;
 // lives in VehicleService below.
 public interface IVehicleService
 {
-    Task<List<VehicleResponse>> GetAsync(bool isNew);
+    // null isNew means "no filter" - return every vehicle regardless of
+    // condition, since the list page shows New and Used together now.
+    Task<List<VehicleResponse>> GetAsync(bool? isNew);
     Task<VehicleOptions> GetOptionsAsync();
     Task<VehicleResponse> CreateAsync(CreateVehicleRequest request);
     Task UpdateAsync(int id, CreateVehicleRequest request);

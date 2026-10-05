@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vehicles.Api.Models;
 using Vehicles.Api.Services;
@@ -5,7 +6,9 @@ using Vehicles.Api.Services;
 namespace Vehicles.Api.Controllers;
 
 // Thin on purpose - see the comment at the top of VehiclesController for
-// why there's no try/catch here.
+// why there's no try/catch here. [Authorize] ovde - isti obrazac kao na
+// VehiclesController (Delete ispod dodatno zahteva Admin rolu).
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class TyresController : ControllerBase
@@ -48,7 +51,8 @@ public class TyresController : ControllerBase
     }
 
     // DELETE /api/tyres/5 - soft delete, refused (409, via ConflictException)
-    // if a vehicle still has this tyre attached.
+    // if a vehicle still has this tyre attached. Admin-only.
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {

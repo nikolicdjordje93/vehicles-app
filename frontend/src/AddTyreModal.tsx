@@ -2,6 +2,7 @@ import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
 import type { CreateTyrePayload, Tyre, TyreOptions } from './types'
 import { useLanguage } from './i18n'
 import { useDatalistFocus } from './useDatalistFocus'
+import { apiFetch } from './api'
 
 interface AddTyreModalProps {
   onClose: () => void
@@ -67,7 +68,7 @@ export function AddTyreModal({ onClose, onCreated, tyre }: AddTyreModalProps) {
   useEffect(() => {
     async function fetchOptions() {
       try {
-        const response = await fetch('http://localhost:5122/api/tyres/options')
+        const response = await apiFetch('/api/tyres/options')
         if (!response.ok) {
           throw new Error(`Server error returned: ${response.status}`)
         }
@@ -106,11 +107,11 @@ export function AddTyreModal({ onClose, onCreated, tyre }: AddTyreModalProps) {
     }
 
     const url = tyre
-      ? `http://localhost:5122/api/tyres/${tyre.id}`
-      : 'http://localhost:5122/api/tyres'
+      ? `/api/tyres/${tyre.id}`
+      : '/api/tyres'
 
     try {
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

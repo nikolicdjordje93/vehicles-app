@@ -8,7 +8,8 @@ export interface Vehicle {
   brand: string
   model: string
   year: number
-  bodyType: string
+  bodyTypeId: number
+  bodyTypeName: string
   color: string
   engine: string
   price: number
@@ -19,6 +20,9 @@ export interface Vehicle {
   tyreBrand: string | null
   tyreSizeInches: number | null
   tyreSeason: string | null
+  // Many-to-many, unlike the tyre fields above (at most one tyre) - a
+  // vehicle can have any number of equipment items, including zero.
+  equipment: Equipment[]
 }
 
 export interface Tyre {
@@ -29,19 +33,36 @@ export interface Tyre {
   price: number
 }
 
+// Šifarnik entry - mirrors the backend's BodyTypeResponse.
+export interface BodyType {
+  id: number
+  name: string
+}
+
+// Mirrors the backend's EquipmentResponse.
+export interface Equipment {
+  id: number
+  name: string
+  code: string
+}
+
 // What we send to POST /api/vehicles when adding a new row. No id (the
 // database assigns that).
 export interface CreateVehiclePayload {
   isNew: boolean
   brand: string
   model: string
-  bodyType: string
+  bodyTypeId: number
   color: string
   engine: string
   year: number
   price: number
   tyreId: number | null
   tyreQuantity: number | null
+  // The full set of equipment ids the vehicle should end up with - not
+  // "add this one"/"remove that one". The backend diffs it against what's
+  // already stored.
+  equipmentIds: number[]
 }
 
 // Autocomplete suggestions for the "Add vehicle" form, from
@@ -49,12 +70,15 @@ export interface CreateVehiclePayload {
 export interface VehicleOptions {
   brands: string[]
   modelsByBrand: Record<string, string[]>
-  bodyTypes: string[]
+  // Šifarnik - a real list of { id, name }, not free-text suggestions.
+  bodyTypes: BodyType[]
   colors: string[]
   engines: string[]
   years: number[]
   // Existing tyres, for the "attach a tyre" dropdown.
   tyres: Tyre[]
+  // Every equipment row that exists, for the checkbox list on the form.
+  equipment: Equipment[]
 }
 
 // What we send to POST/PUT /api/tyres.

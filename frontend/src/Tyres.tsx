@@ -5,6 +5,7 @@ import { TyreIcon } from './Icons'
 import { FilterSidebar } from './FilterSidebar'
 import { useLanguage } from './i18n'
 import { AddTyreModal } from './AddTyreModal'
+import { apiFetch } from './api'
 
 export function Tyres() {
   const [tyres, setTyres] = useState<Tyre[]>([])
@@ -24,7 +25,7 @@ export function Tyres() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('http://localhost:5122/api/tyres')
+      const response = await apiFetch('/api/tyres')
 
       if (!response.ok) {
         throw new Error(`Server error returned: ${response.status}`)
@@ -51,7 +52,7 @@ export function Tyres() {
     setDeleteError(null)
 
     try {
-      const response = await fetch(`http://localhost:5122/api/tyres/${id}`, {
+      const response = await apiFetch(`/api/tyres/${id}`, {
         method: 'DELETE',
       })
 
@@ -91,6 +92,7 @@ export function Tyres() {
     content = <p className="state">{t('emptyTyres')}</p>
   } else {
     content = (
+      <div className="table-container">
       <table className="table">
         <thead>
           <tr>
@@ -127,6 +129,7 @@ export function Tyres() {
           ))}
         </tbody>
       </table>
+      </div>
     )
   }
 

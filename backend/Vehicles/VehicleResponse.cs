@@ -13,7 +13,9 @@ public record VehicleResponse(
     string Brand,
     string Model,
     int Year,
-    string BodyType,
+    int BodyTypeId,
+    // Denormalized from the attached BodyType, same reasoning as TyreBrand below.
+    string BodyTypeName,
     string Color,
     string Engine,
     decimal Price,
@@ -23,4 +25,8 @@ public record VehicleResponse(
     // show it in the table without a second request.
     string? TyreBrand,
     int? TyreSizeInches,
-    string? TyreSeason);
+    string? TyreSeason,
+    // Every piece of equipment currently attached, via VehicleEquipment -
+    // a list, not a single value, since this side of the relationship is
+    // many-to-many (unlike Tyre/BodyType above, which are one-to-many).
+    List<EquipmentResponse> Equipment);

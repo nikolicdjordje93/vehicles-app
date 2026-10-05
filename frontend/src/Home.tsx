@@ -11,6 +11,7 @@ export function Home() {
       <div className="home__cards">
         <Link to="/vehicles" className="home__card">{t('navVehicles')}</Link>
         <Link to="/tyres" className="home__card">{t('navTyres')}</Link>
+        <Link to="/equipment" className="home__card">{t('navEquipment')}</Link>
       </div>
     </div>
   )

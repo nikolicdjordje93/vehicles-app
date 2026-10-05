@@ -274,7 +274,10 @@ a {
   padding: 48px 32px;
   text-align: left;
   flex-grow: 1;
-  max-width: 1280px;
+  /* Widened from 1280px - the vehicles table has 10 columns now (Status,
+     Manufacturer, Model, Year, Body type, Color, Engine, Price, Tyre,
+     Actions) and needed more room to avoid a horizontal scrollbar. */
+  max-width: 1600px;
   width: 100%;
   margin: 0 auto;
 }
@@ -291,8 +294,10 @@ a {
 }
 
 .sidebar {
-  width: 220px;
+  width: 240px;
   flex-shrink: 0;
+  max-height: calc(100vh - var(--nav-height) - 48px);
+  overflow-y: auto;
   background: var(--bg-alt);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -308,6 +313,41 @@ a {
 
 .sidebar__note {
   font-size: 14px;
+}
+
+/* One filter field in the sidebar - a small label above its input/select. */
+.sidebar__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.sidebar__filter input,
+.sidebar__filter select {
+  font: inherit;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 8px;
+  width: 100%;
+}
+
+/* Year / Price - two small inputs (min, max) side by side instead of
+   stacked, so the pair still reads as "one field". */
+.sidebar__filter-range {
+  display: flex;
+  gap: 6px;
+}
+
+.sidebar__filter-range input {
+  width: 50%;
+  min-width: 0;
 }
 
 @media (max-width: 720px) {
@@ -429,11 +469,6 @@ a {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  position: sticky;
-  top: var(--nav-height);
-  z-index: 15;
-  background: var(--bg);
-  padding-top: 16px;
 }
 
 /* ===================================================================
@@ -611,6 +646,151 @@ a {
   color: #d64545;
 }
 
+/* Checkbox list - equipment on the Add/Edit vehicle form. Wraps into
+   columns instead of one long vertical list. */
+.checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.checkbox-list__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text);
+  width: calc(50% - 10px);
+}
+
+/* Multi-select dropdown - equipment on the Add/Edit vehicle form. Looks
+   like a normal closed <select> (a single control showing chips or a
+   placeholder), but opens into the same checkbox-list markup above. */
+.multi-select {
+  position: relative;
+}
+
+.multi-select__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font: inherit;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.multi-select__toggle:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.multi-select__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.multi-select__placeholder {
+  color: var(--text-muted);
+}
+
+.multi-select__arrow {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Floats above whatever comes after it in the form, instead of pushing
+   those fields down while it's open. */
+.multi-select__panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 8px;
+}
+
+.multi-select__panel .checkbox-list {
+  border: none;
+  padding: 4px;
+  max-height: 160px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  background: var(--accent);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 3px 8px 3px 10px;
+}
+
+.chip__remove {
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Equipment column in the Vehicles table - hovering the count reveals a
+   small panel with every equipment item, instead of the plain native
+   title tooltip. Pure CSS (:hover + display:none/flex) - no per-row JS
+   state needed, unlike the multi-select dropdown above which has to track
+   whether it's open. */
+.equipment-hover {
+  position: relative;
+  display: inline-block;
+}
+
+.equipment-hover__count {
+  border-bottom: 1px dashed var(--text-muted);
+  cursor: default;
+}
+
+.equipment-hover__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: max-content;
+  max-width: 260px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 10px;
+}
+
+.equipment-hover:hover .equipment-hover__panel {
+  display: flex;
+}
+
 /* Fixed footer - stays put while the form body scrolls above it. */
 .modal__actions {
   display: flex;
@@ -624,6 +804,16 @@ a {
 /* ===================================================================
    Item table (vehicles / shirts / tyres)
    =================================================================== */
+
+/* Wraps <table> so only the rows scroll - the page header above it
+   (title + Add button) never moves, so it can't slide over and cover a
+   row anymore. thead stays visible via its own sticky rule below. */
+.table-container {
+  max-height: 65vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
 
 .table {
   width: 100%;
@@ -644,6 +834,19 @@ a {
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 5;
+}
+
+.table__sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.table__sortable:hover {
+  color: var(--accent);
 }
 
 .table tbody tr:hover {
@@ -715,6 +918,25 @@ a {
   border: 1px solid #f0b8b8;
 }
 
+/* Condition column in the vehicles table - New vs Used, at a glance. */
+.condition-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.condition-badge--new {
+  background: #e6f7ec;
+  color: #1f8a4c;
+}
+
+.condition-badge--used {
+  background: #eef1f5;
+  color: #52606d;
+}
+
 .spinner {
   width: 28px;
   height: 28px;
@@ -729,4 +951,64 @@ a {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ===================================================================
+   Login stranica
+   =================================================================== */
+
+.login {
+  display: flex;
+  justify-content: center;
+  padding-top: 60px;
+}
+
+.login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 360px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+}
+
+.login__title {
+  font-size: 22px;
+  margin: 0 0 4px;
+  text-align: center;
+}
+
+/* ===================================================================
+   Nav - prijavljeni korisnik
+   =================================================================== */
+
+.nav__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav__user-info {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+.nav__logout-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nav-text);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.nav__logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
 }

@@ -1,20 +1,29 @@
 import { useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { CarIcon } from './Icons'
 import { useLanguage } from './i18n'
+import { useAuth } from './auth'
 
 export function Nav() {
   const [isOpen, setIsOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
   const { language, setLanguage, t } = useLanguage()
+  const { auth, logout } = useAuth()
 
   function closeMenu() {
     setIsOpen(false)
   }
 
+  function handleLogout() {
+    logout()
+    navigate('/login')
+  }
+
   const categoryLabels: Record<string, string> = {
     '/vehicles': t('navVehicles'),
     '/tyres': t('navTyres'),
+    '/equipment': t('navEquipment'),
   }
 
   const currentLabel = categoryLabels[location.pathname] ?? t('navCategories')
@@ -36,6 +45,9 @@ export function Nav() {
         </NavLink>
         <NavLink to="/tyres" className={linkClass}>
           {t('navTyres')}
+        </NavLink>
+        <NavLink to="/equipment" className={linkClass}>
+          {t('navEquipment')}
         </NavLink>
       </div>
 
@@ -79,9 +91,25 @@ export function Nav() {
               >
                 {t('navTyres')}
               </NavLink>
+              <NavLink
+                to="/equipment"
+                onClick={closeMenu}
+                className={({ isActive }) => (isActive ? 'is-active' : undefined)}
+              >
+                {t('navEquipment')}
+              </NavLink>
             </div>
           )}
         </div>
+
+        {auth && (
+          <div className="nav__user">
+            <span className="nav__user-info">{auth.email} ({auth.role})</span>
+            <button className="nav__logout-btn" onClick={handleLogout}>
+              {t('logoutButton')}
+            </button>
+          </div>
+        )}
       </div>
     </nav>
   )

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vehicles.Api.Models;
 using Vehicles.Api.Services;
@@ -9,6 +10,12 @@ namespace Vehicles.Api.Controllers;
 // "throw if not found" rules) lives in VehicleService; if it throws, the
 // GlobalExceptionHandler catches it and picks the right status code - so
 // no try/catch is needed here.
+//
+// [Authorize] na nivou klase - bilo koji ulogovan korisnik (Operater ili
+// Admin) sme GET/POST/PUT. Delete ispod ima DODATNI [Authorize(Roles =
+// "Admin")] - ASP.NET Core kombinuje oba (AND), pa za Delete mora i da
+// bude ulogovan I da mu je rola baš Admin.
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class VehiclesController : ControllerBase
@@ -21,11 +28,12 @@ public class VehiclesController : ControllerBase
     }
 
     // [FromQuery] tells ASP.NET to read this parameter from the URL's query
-    // string (?isNew=true), not from the route or the request body.
-    // GET /api/vehicles?isNew=true  -> new vehicles
-    // GET /api/vehicles?isNew=false -> used vehicles
+    // string. bool? (nullable) - omitting isNew entirely returns everything.
+    // GET /api/vehicles              -> all vehicles (New and Used together)
+    // GET /api/vehicles?isNew=true   -> only new
+    // GET /api/vehicles?isNew=false  -> only used
     [HttpGet]
-    public async Task<ActionResult> Get([FromQuery] bool isNew)
+    public async Task<ActionResult> Get([FromQuery] bool? isNew)
     {
         return Ok(await _vehicleService.GetAsync(isNew));
     }
@@ -66,7 +74,9 @@ public class VehiclesController : ControllerBase
         return NoContent();
     }
 
-    // DELETE /api/vehicles/5 - Soft delete.
+    // DELETE /api/vehicles/5 - Soft delete. Admin-only - vidi komentar na
+    // vrhu klase.
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
