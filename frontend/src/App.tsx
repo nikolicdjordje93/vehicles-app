@@ -8,6 +8,7 @@ import { Login } from './Login'
 import { BackgroundArt } from './BackgroundArt'
 import { LanguageProvider } from './i18n'
 import { AuthProvider } from './auth'
+import { ProtectedRoute } from './ProtectedRoute'
 
 function App() {
   return (
@@ -18,11 +19,17 @@ function App() {
           <Nav />
           <main className="app__content">
             <Routes>
-              <Route path="/" element={<Home />} />
+              {/* Jedina javna stranica. */}
               <Route path="/login" element={<Login />} />
-              <Route path="/vehicles" element={<Vehicles />} />
-              <Route path="/tyres" element={<Tyres />} />
-              <Route path="/equipment" element={<Equipment />} />
+
+              {/* Sve ispod traži prijavu - ProtectedRoute nema svoj path,
+                  samo proveri auth pre nego što pusti unutrašnju rutu. */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/vehicles" element={<Vehicles />} />
+                <Route path="/tyres" element={<Tyres />} />
+                <Route path="/equipment" element={<Equipment />} />
+              </Route>
             </Routes>
           </main>
         </div>

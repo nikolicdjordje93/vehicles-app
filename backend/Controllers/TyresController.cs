@@ -22,16 +22,16 @@ public class TyresController : ControllerBase
 
     // GET /api/tyres
     [HttpGet]
-    public async Task<ActionResult> Get()
+    public async Task<ActionResult> Get(CancellationToken cancellationToken)
     {
-        return Ok(await _tyreService.GetAsync());
+        return Ok(await _tyreService.GetAsync(cancellationToken));
     }
 
     // GET /api/tyres/options - same idea as VehiclesController.GetOptions.
     [HttpGet("options")]
-    public async Task<ActionResult<TyreOptions>> GetOptions()
+    public async Task<ActionResult<TyreOptions>> GetOptions(CancellationToken cancellationToken)
     {
-        return Ok(await _tyreService.GetOptionsAsync());
+        return Ok(await _tyreService.GetOptionsAsync(cancellationToken));
     }
 
     // POST /api/tyres - Create, same shape as VehiclesController.Post.

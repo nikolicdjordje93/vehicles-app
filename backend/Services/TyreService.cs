@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Vehicles.Api.Data;
 using Vehicles.Api.Exceptions;
 using Vehicles.Api.Models;
@@ -8,25 +9,30 @@ namespace Vehicles.Api.Services;
 public class TyreService : ITyreService
 {
     private readonly AppDbContext _db;
+    // Samo za brisanje keša - lista guma je deo VehicleOptions (dropdown
+    // "Guma" u formi za vozilo), pa svaka promena gume mora da ga poništi.
+    private readonly IMemoryCache _cache;
 
-    public TyreService(AppDbContext db)
+    public TyreService(AppDbContext db, IMemoryCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
-    public async Task<List<TyreResponse>> GetAsync()
+    // CancellationToken samo na čitanjima - isti razlog kao u VehicleService.
+    public async Task<List<TyreResponse>> GetAsync(CancellationToken cancellationToken)
     {
         return await _db.Tyres
             .OrderBy(t => t.Brand)
             .Select(t => new TyreResponse(t.Id, t.Brand, t.SizeInches, t.Season, t.Price))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
-    public async Task<TyreOptions> GetOptionsAsync()
+    public async Task<TyreOptions> GetOptionsAsync(CancellationToken cancellationToken)
     {
         var tyres = await _db.Tyres
             .Select(t => new { t.Brand, t.SizeInches, t.Season })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var brands = tyres.Select(t => t.Brand).Distinct().OrderBy(b => b).ToList();
         var sizes = tyres.Select(t => t.SizeInches).Distinct().OrderBy(s => s).ToList();
@@ -47,6 +53,7 @@ public class TyreService : ITyreService
 
         _db.Tyres.Add(tyre);
         await _db.SaveChangesAsync();
+        _cache.Remove(CacheKeys.VehicleOptions);
 
         return new TyreResponse(tyre.Id, tyre.Brand, tyre.SizeInches, tyre.Season, tyre.Price);
     }
@@ -65,6 +72,7 @@ public class TyreService : ITyreService
         tyre.Price = request.Price;
 
         await _db.SaveChangesAsync();
+        _cache.Remove(CacheKeys.VehicleOptions);
     }
 
     public async Task DeleteAsync(int id)
@@ -87,5 +95,6 @@ public class TyreService : ITyreService
 
         tyre.IsDeleted = true;
         await _db.SaveChangesAsync();
+        _cache.Remove(CacheKeys.VehicleOptions);
     }
 }

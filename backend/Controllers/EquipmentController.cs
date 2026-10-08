@@ -22,8 +22,8 @@ public class EquipmentController : ControllerBase
 
     // GET /api/equipment
     [HttpGet]
-    public async Task<ActionResult> Get()
+    public async Task<ActionResult> Get(CancellationToken cancellationToken)
     {
-        return Ok(await _equipmentService.GetAsync());
+        return Ok(await _equipmentService.GetAsync(cancellationToken));
     }
 }

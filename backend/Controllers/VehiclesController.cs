@@ -32,10 +32,14 @@ public class VehiclesController : ControllerBase
     // GET /api/vehicles              -> all vehicles (New and Used together)
     // GET /api/vehicles?isNew=true   -> only new
     // GET /api/vehicles?isNew=false  -> only used
+    //
+    // CancellationToken - ASP.NET ga sam ubaci (ne dolazi iz URL-a ni body-ja)
+    // i aktivira ga kad klijent prekine zahtev (zatvori tab, ode na drugu
+    // stranicu). Mi ga samo prosledimo dalje do servisa, pa do EF Core-a.
     [HttpGet]
-    public async Task<ActionResult> Get([FromQuery] bool? isNew)
+    public async Task<ActionResult> Get([FromQuery] bool? isNew, CancellationToken cancellationToken)
     {
-        return Ok(await _vehicleService.GetAsync(isNew));
+        return Ok(await _vehicleService.GetAsync(isNew, cancellationToken));
     }
 
     // GET /api/vehicles/options
@@ -44,9 +48,9 @@ public class VehiclesController : ControllerBase
     // GET /api/vehicles?isNew=... above - ASP.NET tells them apart by the
     // route template, not just the HTTP verb.
     [HttpGet("options")]
-    public async Task<ActionResult<VehicleOptions>> GetOptions()
+    public async Task<ActionResult<VehicleOptions>> GetOptions(CancellationToken cancellationToken)
     {
-        return Ok(await _vehicleService.GetOptionsAsync());
+        return Ok(await _vehicleService.GetOptionsAsync(cancellationToken));
     }
 
     // POST /api/vehicles - Create. [FromBody] tells ASP.NET to read the

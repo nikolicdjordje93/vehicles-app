@@ -4,6 +4,10 @@
 const API_BASE = 'http://localhost:5122'
 const STORAGE_KEY = 'auth'
 
+// Ime događaja koji apiFetch pošalje kad bekend vrati 401 - AuthProvider
+// (auth.tsx) ga sluša i odjavi korisnika.
+export const UNAUTHORIZED_EVENT = 'auth:unauthorized'
+
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const headers = new Headers(options.headers)
 
@@ -20,5 +24,14 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
     // backend returns 401 like it would for anyone else.
   }
 
-  return fetch(`${API_BASE}${path}`, { ...options, headers })
+  const response = await fetch(`${API_BASE}${path}`, { ...options, headers })
+
+  // 401 - token nedostaje, istekao je (posle 60 min) ili nije validan.
+  // apiFetch nije komponenta, pa ne može sam da koristi useAuth() ni
+  // useNavigate() - samo javi događaj, a AuthProvider uradi odjavu.
+  if (response.status === 401) {
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+  }
+
+  return response
 }

@@ -13,11 +13,11 @@ public class EquipmentService : IEquipmentService
         _db = db;
     }
 
-    public async Task<List<EquipmentResponse>> GetAsync()
+    public async Task<List<EquipmentResponse>> GetAsync(CancellationToken cancellationToken)
     {
         return await _db.Equipment
             .OrderBy(e => e.Name)
             .Select(e => new EquipmentResponse(e.Id, e.Name, e.Code))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 }

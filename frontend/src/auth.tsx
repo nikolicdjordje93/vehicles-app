@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { UNAUTHORIZED_EVENT } from './api'
 
 export type Role = 'Admin' | 'Operater'
 
@@ -44,6 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuth(null)
     localStorage.removeItem(STORAGE_KEY)
   }
+
+  // apiFetch javi kad bekend vrati 401 - odjavimo korisnika. Ne treba
+  // ručni redirect: auth postane null, pa ProtectedRoute sam prebaci na /login.
+  useEffect(() => {
+    function handleUnauthorized() {
+      setAuth(null)
+      localStorage.removeItem(STORAGE_KEY)
+    }
+
+    window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
+  }, [])
 
   return (
     <AuthContext.Provider value={{ auth, login, logout }}>

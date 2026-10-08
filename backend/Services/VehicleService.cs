@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Vehicles.Api.Data;
 using Vehicles.Api.Exceptions;
 using Vehicles.Api.Models;
@@ -12,10 +13,12 @@ namespace Vehicles.Api.Services;
 public class VehicleService : IVehicleService
 {
     private readonly AppDbContext _db;
+    private readonly IMemoryCache _cache;
 
-    public VehicleService(AppDbContext db)
+    public VehicleService(AppDbContext db, IMemoryCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     // OrderBy is how we control display order - not by relying on the
@@ -26,7 +29,13 @@ public class VehicleService : IVehicleService
     // isNew is now optional - null means "everything", since New and Used
     // are shown together in one table. The Where only gets applied when a
     // caller actually asks to filter by condition.
-    public async Task<List<VehicleResponse>> GetAsync(bool? isNew)
+    //
+    // CancellationToken ide samo u ToListAsync - to je jedina linija koja
+    // stvarno čeka bazu. Ako ga klijent otkaže, EF Core prekine upit i baci
+    // OperationCanceledException (GlobalExceptionHandler ga tiho obradi).
+    // Namerno NE i na Create/Update/Delete: upis koji je korisnik već poslao
+    // treba da se završi do kraja, a ne da stane na pola.
+    public async Task<List<VehicleResponse>> GetAsync(bool? isNew, CancellationToken cancellationToken)
     {
         var query = _db.Vehicles.AsQueryable();
 
@@ -54,7 +63,7 @@ public class VehicleService : IVehicleService
                 v.VehicleEquipment
                     .Select(ve => new EquipmentResponse(ve.Equipment!.Id, ve.Equipment.Name, ve.Equipment.Code))
                     .ToList()))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
     // Powers the autocomplete suggestions on the "Add vehicle" form.
@@ -64,11 +73,22 @@ public class VehicleService : IVehicleService
     // (LINQ to Objects) rather than asking Postgres to do it. With only a
     // few dozen rows that's simpler to read and reason about; a table with
     // millions of rows would instead want this pushed down into SQL.
-    public async Task<VehicleOptions> GetOptionsAsync()
+    //
+    // Keširano: ako je rezultat već u memoriji, vraćamo ga odmah, bez ijednog
+    // upita ka bazi. Keš se briše ručno kad se promene vozila (Create/Update/
+    // Delete ovde) ili gume (TyreService). Istek od 10 min je samo rezerva za
+    // promene koje aplikacija ne vidi - BodyTypes i Equipment se menjaju
+    // direktno u bazi, pa za njih niko ne bi obrisao keš.
+    public async Task<VehicleOptions> GetOptionsAsync(CancellationToken cancellationToken)
     {
+        if (_cache.TryGetValue(CacheKeys.VehicleOptions, out VehicleOptions? cached) && cached is not null)
+        {
+            return cached;
+        }
+
         var vehicles = await _db.Vehicles
             .Select(v => new { v.Brand, v.Model, v.Color, v.Engine, v.Year })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var brands = vehicles
             .Select(v => v.Brand)
@@ -110,23 +130,27 @@ public class VehicleService : IVehicleService
         var bodyTypes = await _db.BodyTypes
             .OrderBy(b => b.Name)
             .Select(b => new BodyTypeResponse(b.Id, b.Name))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         // Separate table, not derived from the vehicles above - this is
         // the real list of tyres a vehicle can be attached to.
         var tyres = await _db.Tyres
             .OrderBy(t => t.Brand)
             .Select(t => new TyreResponse(t.Id, t.Brand, t.SizeInches, t.Season, t.Price))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         // Every equipment row that exists, for the checkbox list on the
         // form - same reasoning as BodyTypes/Tyres above.
         var equipment = await _db.Equipment
             .OrderBy(e => e.Name)
             .Select(e => new EquipmentResponse(e.Id, e.Name, e.Code))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
-        return new VehicleOptions(brands, modelsByBrand, bodyTypes, colors, engines, years, tyres, equipment);
+        var options = new VehicleOptions(brands, modelsByBrand, bodyTypes, colors, engines, years, tyres, equipment);
+
+        _cache.Set(CacheKeys.VehicleOptions, options, TimeSpan.FromMinutes(10));
+
+        return options;
     }
 
     public async Task<VehicleResponse> CreateAsync(CreateVehicleRequest request)
@@ -158,6 +182,10 @@ public class VehicleService : IVehicleService
             _db.VehicleEquipment.Add(new VehicleEquipment { VehicleId = vehicle.Id, EquipmentId = equipmentId });
         }
         await _db.SaveChangesAsync();
+
+        // Novo vozilo može da donese nov brend/model/boju - stari keš više
+        // ne važi. Briše se POSLE upisa, tek kad je promena stvarno u bazi.
+        _cache.Remove(CacheKeys.VehicleOptions);
 
         // We map back to VehicleResponse instead of returning the entity
         // straight from the database. BodyTypeName/Tyre/Equipment details
@@ -219,6 +247,7 @@ public class VehicleService : IVehicleService
         }
 
         await _db.SaveChangesAsync();
+        _cache.Remove(CacheKeys.VehicleOptions);
     }
 
     // Soft delete - we don't remove the row, just flag it. FindAsync
@@ -234,5 +263,6 @@ public class VehicleService : IVehicleService
 
         vehicle.IsDeleted = true;
         await _db.SaveChangesAsync();
+        _cache.Remove(CacheKeys.VehicleOptions);
     }
 }

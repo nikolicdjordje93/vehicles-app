@@ -7,5 +7,5 @@ namespace Vehicles.Api.Services;
 // just the one list the Equipment page and the vehicle form both need.
 public interface IEquipmentService
 {
-    Task<List<EquipmentResponse>> GetAsync();
+    Task<List<EquipmentResponse>> GetAsync(CancellationToken cancellationToken);
 }

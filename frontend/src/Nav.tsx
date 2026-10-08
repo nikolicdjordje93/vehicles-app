@@ -20,6 +20,22 @@ export function Nav() {
     navigate('/login')
   }
 
+  // Neprijavljen korisnik (to je uvek samo /login, zbog ProtectedRoute) vidi
+  // samo logo - bez linkova, izbora jezika, dropdown-a i korisničkog dela.
+  // Mora da stoji POSLE svih hook-ova iznad: React zahteva da se hook-ovi
+  // pozivaju istim redom pri svakom renderu, pa early return ne sme pre njih.
+  // <span> umesto <Link> - nema gde da vodi dok korisnik nije prijavljen.
+  if (!auth) {
+    return (
+      <nav className="nav">
+        <span className="nav__brand">
+          <CarIcon className="nav__brand-icon" />
+          {t('brand')}
+        </span>
+      </nav>
+    )
+  }
+
   const categoryLabels: Record<string, string> = {
     '/vehicles': t('navVehicles'),
     '/tyres': t('navTyres'),
@@ -102,14 +118,14 @@ export function Nav() {
           )}
         </div>
 
-        {auth && (
-          <div className="nav__user">
-            <span className="nav__user-info">{auth.email} ({auth.role})</span>
-            <button className="nav__logout-btn" onClick={handleLogout}>
-              {t('logoutButton')}
-            </button>
-          </div>
-        )}
+        {/* Ovde je auth sigurno postavljen (neprijavljeni su izašli gore),
+            pa više ne treba provera {auth && ...}. */}
+        <div className="nav__user">
+          <span className="nav__user-info">{auth.email} ({auth.role})</span>
+          <button className="nav__logout-btn" onClick={handleLogout}>
+            {t('logoutButton')}
+          </button>
+        </div>
       </div>
     </nav>
   )

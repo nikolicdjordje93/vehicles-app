@@ -16,7 +16,7 @@ export function Login() {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-
+ debugger
     try {
       const response = await fetch('http://localhost:5122/api/auth/login', {
         method: 'POST',

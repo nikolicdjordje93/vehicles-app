@@ -9,8 +9,9 @@ public interface IVehicleService
 {
     // null isNew means "no filter" - return every vehicle regardless of
     // condition, since the list page shows New and Used together now.
-    Task<List<VehicleResponse>> GetAsync(bool? isNew);
-    Task<VehicleOptions> GetOptionsAsync();
+    // CancellationToken samo na čitanjima - vidi komentar u VehicleService.
+    Task<List<VehicleResponse>> GetAsync(bool? isNew, CancellationToken cancellationToken);
+    Task<VehicleOptions> GetOptionsAsync(CancellationToken cancellationToken);
     Task<VehicleResponse> CreateAsync(CreateVehicleRequest request);
     Task UpdateAsync(int id, CreateVehicleRequest request);
     Task DeleteAsync(int id);

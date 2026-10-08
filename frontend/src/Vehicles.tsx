@@ -6,6 +6,7 @@ import { FilterSidebar } from './FilterSidebar'
 import { useLanguage } from './i18n'
 import { AddVehicleModal } from './AddVehicleModal'
 import { apiFetch } from './api'
+import { useAuth } from './auth'
 
 // New and Used used to be two separate pages/routes, then two tabs on one
 // page. Both were really just a filter on the same table and the same DB
@@ -123,6 +124,10 @@ export function Vehicles() {
   const [filters, setFilters] = useState<VehicleFilters>(EMPTY_FILTERS)
   const [sort, setSort] = useState<SortConfig | null>(null)
   const { t } = useLanguage()
+  const { auth } = useAuth()
+  // Samo sakriva dugme - prava zaštita je na bekendu ([Authorize(Roles =
+  // "Admin")] na Delete), koji Operateru vraća 403 i bez ovoga.
+  const isAdmin = auth?.role === 'Admin'
 
   // Pulled out of useEffect (and wrapped in useCallback so it doesn't get
   // recreated every render) so the "Add vehicle" modal can also call it
@@ -289,9 +294,11 @@ export function Vehicles() {
                   <button className="btn btn--secondary btn--small" onClick={() => setEditingVehicle(vehicle)}>
                     {t('editButton')}
                   </button>
-                  <button className="btn btn--danger btn--small" onClick={() => handleDelete(vehicle.id)}>
-                    {t('deleteButton')}
-                  </button>
+                  {isAdmin && (
+                    <button className="btn btn--danger btn--small" onClick={() => handleDelete(vehicle.id)}>
+                      {t('deleteButton')}
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>

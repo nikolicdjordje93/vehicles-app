@@ -61,6 +61,11 @@ builder.Services.AddScoped<ITyreService, TyreService>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+// IMemoryCache - keš u memoriji servera. Singleton (jedan za celu
+// aplikaciju), pa ga dele svi zahtevi - za razliku od servisa iznad koji
+// žive samo dok traje jedan zahtev. Koristi ga VehicleService.GetOptionsAsync.
+builder.Services.AddMemoryCache();
+
 // PasswordHasher<Korisnik> - iz Microsoft.Extensions.Identity.Core paketa
 // (dodaj ga sa `dotnet add package Microsoft.Extensions.Identity.Core`
 // ako već nije u projektu). Hešira/proverava lozinke, ništa više - ne

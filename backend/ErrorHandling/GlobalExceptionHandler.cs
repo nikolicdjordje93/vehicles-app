@@ -23,6 +23,16 @@ public class GlobalExceptionHandler : IExceptionHandler
 
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
+        // Klijent je sam prekinuo zahtev (zatvorio tab, otišao na drugu
+        // stranicu), pa je CancellationToken otkazao upit. To nije bag: ne
+        // logujemo ga kao grešku i ne pišemo odgovor, jer nema ko da ga primi.
+        // 499 = "Client Closed Request", ustaljen kod za baš ovu situaciju.
+        if (exception is OperationCanceledException && httpContext.RequestAborted.IsCancellationRequested)
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status499ClientClosedRequest;
+            return true;
+        }
+
         // Add a new case here whenever a new exception type needs its own
         // status code - everything not listed falls through to 500.
         var (statusCode, title) = exception switch

@@ -6,6 +6,7 @@ import { FilterSidebar } from './FilterSidebar'
 import { useLanguage } from './i18n'
 import { AddTyreModal } from './AddTyreModal'
 import { apiFetch } from './api'
+import { useAuth } from './auth'
 
 export function Tyres() {
   const [tyres, setTyres] = useState<Tyre[]>([])
@@ -19,6 +20,9 @@ export function Tyres() {
   // the list the user is looking at, so it gets its own banner instead.
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const { t } = useLanguage()
+  const { auth } = useAuth()
+  // Isto kao u Vehicles.tsx - samo UI, bekend i dalje vraća 403 Operateru.
+  const isAdmin = auth?.role === 'Admin'
 
   const fetchTyres = useCallback(async () => {
     try {
@@ -120,9 +124,11 @@ export function Tyres() {
                   <button className="btn btn--secondary btn--small" onClick={() => setEditingTyre(tyre)}>
                     {t('editButton')}
                   </button>
-                  <button className="btn btn--danger btn--small" onClick={() => handleDelete(tyre.id)}>
-                    {t('deleteButton')}
-                  </button>
+                  {isAdmin && (
+                    <button className="btn btn--danger btn--small" onClick={() => handleDelete(tyre.id)}>
+                      {t('deleteButton')}
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
